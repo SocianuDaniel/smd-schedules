@@ -2,3 +2,9 @@ Django
 djangorestframework
 psycopg2
 drf-spectacular
+django-recaptcha
+django-phonenumber-field[phonenumbers]
+django-localflavor
+django-countries[pyuca]
+celery[redis]
+gevent
