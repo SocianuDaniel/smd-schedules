@@ -41,13 +41,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
 
 
-# class Employee(models.Model):
-#     """Class for the employee"""
-#     owner = models.ForeignKey(
-#         get_user_model(),
-#         related_name="owner",
-#         on_delete=models.CASCADE
-#     )
-#     firstname = models.CharField(_('First Name'), max_length=250, blank=False)
-#     lastname = models.CharField(_('Last Name'), max_length=250, blank=False)
-#     email = models.EmailField(_('employee email'))
+class Employee(models.Model):
+    """Class for the employee"""
+    owner = models.ForeignKey(
+        get_user_model(),
+        related_name="owner",
+        on_delete=models.CASCADE
+    )
+    firstname = models.CharField(_('First Name'), max_length=250, blank=False)
+    lastname = models.CharField(_('Last Name'), max_length=250, blank=False)
+    email = models.EmailField(_('employee email'))
