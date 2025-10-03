@@ -50,4 +50,4 @@ class Employee(models.Model):
     )
     firstname = models.CharField(_('First Name'), max_length=250, blank=False)
     lastname = models.CharField(_('Last Name'), max_length=250, blank=False)
-    email = models.EmailField(_('employee email'))
+    email = models.EmailField(_('employee email'), unique=True)
