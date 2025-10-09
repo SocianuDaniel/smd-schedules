@@ -11,6 +11,8 @@ from django_countries import Countries
 from localflavor.it import it_region, it_province
 from phonenumber_field.modelfields import PhoneNumberField
 from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.exceptions import ValidationError
+from django .db.models import Q
 
 
 class LimitCountries(Countries):
@@ -154,6 +156,7 @@ class Contract(models.Model):
         ]
 
     def __str__(self):
+
         name = ''
         if len(self.owner.user.company_name):
             name = self.owner.user.company_name
@@ -162,3 +165,117 @@ class Contract(models.Model):
         else:
             name = self.owner.user.email
         return f'{name}-{self.weekHours}-{_("week hours contract")}'
+
+
+class Employee(models.Model):
+    """class for employee mode"""
+    owner = models.ForeignKey(
+        Owner,
+        related_name='employee_owner',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    user = models.OneToOneField(get_user_model(), on_delete=models.CASCADE)
+    contract = models.ForeignKey(
+        Contract,
+        related_name='employee_contract',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    startDate = models.DateField(_('activity start date'))
+    endDate = models.DateField(_('activity end date'), null=True, blank=True)
+
+    def __str__(self):
+
+        name = ''
+        if len(self.user.company_name):
+            name = self.user.company_name
+        elif len(self.user.first_name + '' + self.user.last_name):
+            name = self.user.last_name + ' ' + self.user.first_name
+        else:
+            name = self.user.email
+        return name
+
+
+class Task(models.Model):
+    """class for shift  task"""
+    owner = models.ForeignKey(
+        Owner,
+        related_name='owner_tasks',
+        on_delete=models.CASCADE
+
+    )
+    name = models.CharField(_('task name'), max_length=250, blank=False)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['owner', 'name'],
+                name=_('unique_task_by_owner')
+            )
+
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+class Shift(models.Model):
+    """models for shift """
+    owner = models.ForeignKey(
+        Owner,
+        related_name='owner_shift',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    employee = models.ForeignKey(
+        Employee,
+        related_name='employee_shift',
+        on_delete=models.CASCADE
+    )
+    shift_date = models.DateField(
+        _('shift_date')
+    )
+    start_time = models.DateTimeField(
+        _('shift_start_time')
+    )
+    end_time = models.DateTimeField(
+        _('shift end time')
+    )
+    task = models.ForeignKey(
+        Task,
+        related_name='shift_task',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+
+    def __str__(self):
+        return f'' \
+               f'[{self.employee}]-' \
+               f'{self.shift_date}' \
+               f'[{self.start_time: %H:%M}-{self.end_time: %H:%M}]' \
+               f'-[{self.task}]'
+
+    def clean(self):
+        if self.start_time >= self.end_time:
+            raise ValidationError(
+                _('the shift must end after the start time')
+            )
+        overlapping_shifts = Shift.objects.filter(
+            employee=self.employee,
+            shift_date=self.shift_date,
+        ).filter(
+            Q(start_time__lt=self.end_time) & Q(end_time__gt=self.start_time)
+        )
+        if self.pk:
+            overlapping_shifts = overlapping_shifts.exclude(pk=self.pk)
+        if overlapping_shifts.exists():
+            raise ValidationError(
+                _(f'Shift conflict with {overlapping_shifts}')
+            )
+        super().clean()
