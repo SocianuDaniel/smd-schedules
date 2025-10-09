@@ -126,28 +126,32 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = 'email'
 
     def completion_percentage(self):
-        # Campi singoli da controllare
+
         single_fields = [
-            'company_name', 'first_name', 'last_name', 'street_name', 'street_number',
-            'city', 'zip_code', 'province_name', 'region_name', 'country_name',
+            'company_name', 'first_name', 'last_name', 'street_name',
+            'street_number', 'city', 'zip_code', 'province_name',
+            'region_name', 'country_name',
             'social_security_number', 'vat_number', 'billing_code'
         ]
 
-        total = len(single_fields) + 2  # aggiungiamo 2 gruppi (email, telefono)
+        total = len(single_fields) + 2
 
-        # Controlla i campi singoli
-        filled = sum(1 for field in single_fields if getattr(self, field) and str(getattr(self, field)).strip())
+        filled = sum(1 for field in single_fields
+                     if getattr(self, field) and
+                     str(getattr(self, field)).strip()
+                     )
 
-        # Gruppo email (completed if at least one is present)
-        if (self.email and str(self.email).strip()) or (self.legal_mail and str(self.legal_mail).strip()):
+        if (self.email and str(self.email).strip()) or \
+                (self.legal_mail and str(self.legal_mail).strip()):
             filled += 1
 
-        # Gruppo telefono (completed if at least one is present)
-        if (self.mobile_phone and str(self.mobile_phone).strip()) or (self.phone and str(self.phone).strip()):
+        if (self.mobile_phone and str(self.mobile_phone).strip()) or \
+                (self.phone and str(self.phone).strip()):
             filled += 1
 
         percentage = (filled / total) * 100 if total > 0 else 0
         return round(percentage, 2)
+
 
 class Owner(models.Model):
     """class for owner model"""
