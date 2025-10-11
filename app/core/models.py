@@ -152,6 +152,18 @@ class User(AbstractBaseUser, PermissionsMixin):
         percentage = (filled / total) * 100 if total > 0 else 0
         return round(percentage, 2)
 
+    def get_full_name(self):
+        name = f'{self.first_name} {self.last_name}'
+        return name if len(name) else self.get_username()
+
+    def get_short_name(self):
+        name = f'{self.first_name[0]}.{self.first_name}'
+        return name if len(name) else self.get_username()
+
+    def __str__(self):
+        return self.company_name \
+            if self.company_name else self.get_full_name()
+
 
 class Owner(models.Model):
     """class for owner model"""
@@ -159,6 +171,15 @@ class Owner(models.Model):
 
     def __str__(self):
         return self.user.__str__()
+
+    def clean(self):
+        if self.user.is_superuser:
+            raise ValidationError(
+                _('Owner cant be a superuser')
+            )
+
+        if Employee.objects.filter(user=self.user).exists():
+            raise ValidationError(_("The owner can't be an Employee"))
 
 
 class Contract(models.Model):
@@ -183,15 +204,7 @@ class Contract(models.Model):
         ]
 
     def __str__(self):
-
-        name = ''
-        if len(self.owner.user.company_name):
-            name = self.owner.user.company_name
-        elif len(self.owner.user.first_name+''+self.owner.user.last_name):
-            name = self.owner.user.last_name+' '+self.owner.user.first_name
-        else:
-            name = self.owner.user.email
-        return f'{name}-{self.weekHours}-{_("week hours contract")}'
+        return f'{self.owner}-{self.weekHours}-{_("week hours contract")}'
 
 
 class Employee(models.Model):
@@ -215,16 +228,11 @@ class Employee(models.Model):
     startDate = models.DateField(_('activity start date'))
     endDate = models.DateField(_('activity end date'), null=True, blank=True)
 
-    def __str__(self):
+    def short(self):
+        return self.user.get_short_name()
 
-        name = ''
-        if len(self.user.company_name):
-            name = self.user.company_name
-        elif len(self.user.first_name + '' + self.user.last_name):
-            name = self.user.last_name + ' ' + self.user.first_name
-        else:
-            name = self.user.email
-        return name
+    def __str__(self):
+        return self.user.__str__()
 
 
 class Task(models.Model):
@@ -250,14 +258,33 @@ class Task(models.Model):
         return self.name
 
 
+class Schedule(models.Model):
+    owner = models.ForeignKey(
+        Owner, related_name='daly_schedule',
+        on_delete=models.CASCADE
+    )
+    date = models.DateField(_('schedule date'))
+    start = models.DateTimeField(_('activity datetime start'))
+    end = models.DateTimeField(_('activity datetime end'))
+
+    def __str__(self):
+        return f'{self.owner} schedule for {self.date}'
+
+    def clean(self):
+        if self.start.date() < self.date:
+            raise ValidationError(_('start datetime must greater or equal '))
+        if self.end <= self.start:
+            raise ValidationError(
+                _('end activity must be greater then the start datetime')
+            )
+
+
 class Shift(models.Model):
     """models for shift """
-    owner = models.ForeignKey(
-        Owner,
-        related_name='owner_shift',
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True
+    schedule = models.ForeignKey(
+        Schedule,
+        related_name='daily_shift',
+        on_delete=models.CASCADE,
     )
     employee = models.ForeignKey(
         Employee,
@@ -305,4 +332,18 @@ class Shift(models.Model):
             raise ValidationError(
                 _(f'Shift conflict with {overlapping_shifts}')
             )
+        if self.schedule.owner != self.employee.owner:
+            raise ValidationError(
+                _('Schedule and Employee mut have the same owner')
+            )
+        if not (self.schedule.start <= self.start_time <= self.schedule.end):
+            raise ValidationError(
+                _('shift start date must be within schedule start end')
+            )
+        if not (self.schedule.start < self.end_time <= self.schedule.end):
+            raise ValidationError(
+                _('shift start date must be lowerr then schedule end')
+            )
+        if self.shift_date != self.schedule.date:
+            raise ValidationError(_('Shift date must match schedule date'))
         super().clean()
