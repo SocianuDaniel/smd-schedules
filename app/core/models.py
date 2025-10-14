@@ -267,11 +267,19 @@ class Schedule(models.Model):
     start = models.DateTimeField(_('activity datetime start'))
     end = models.DateTimeField(_('activity datetime end'))
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['owner', 'date'],
+                name='unique_schedule_by_owner'
+            )
+        ]
+
     def __str__(self):
         return f'{self.owner} schedule for {self.date}'
 
     def clean(self):
-        if self.start.date() < self.date:
+        if self.start.date() != self.date:
             raise ValidationError(_('start datetime must greater or equal '))
         if self.end <= self.start:
             raise ValidationError(
