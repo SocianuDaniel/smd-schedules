@@ -157,7 +157,9 @@ class User(AbstractBaseUser, PermissionsMixin):
         return name if len(name) else self.get_username()
 
     def get_short_name(self):
-        name = f'{self.first_name[0]}.{self.first_name}'
+        name = ""
+        if self.first_name:
+            name = f'{self.first_name[0]}.{self.first_name}'
         return name if len(name) else self.get_username()
 
     def __str__(self):
