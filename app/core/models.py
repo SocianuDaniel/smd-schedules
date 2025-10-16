@@ -318,6 +318,12 @@ class Shift(models.Model):
         blank=True
     )
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['employee', 'shift_date']),
+            models.Index(fields=['schedule', 'start_time'])
+        ]
+
     def __str__(self):
         return f'' \
                f'[{self.employee}]-' \
@@ -326,6 +332,11 @@ class Shift(models.Model):
                f'-[{self.task}]'
 
     def clean(self):
+        if self.employee.endDate and \
+                self.schedule.date > self.employee.endDate:
+            raise ValidationError(_('employee’s contract has ended '))
+        if self.shift_date != self.schedule.date:
+            raise ValidationError(_('Shift date must match schedule date'))
         if self.start_time >= self.end_time:
             raise ValidationError(
                 _('the shift must end after the start time')
@@ -340,20 +351,24 @@ class Shift(models.Model):
             overlapping_shifts = overlapping_shifts.exclude(pk=self.pk)
         if overlapping_shifts.exists():
             raise ValidationError(
-                _(f'Shift conflict with {overlapping_shifts}')
+                _(
+                    'already has a shift that overlaps with this period.'
+                )
             )
+
         if self.schedule.owner != self.employee.owner:
             raise ValidationError(
                 _('Schedule and Employee mut have the same owner')
             )
-        if not (self.schedule.start <= self.start_time <= self.schedule.end):
+        if not (
+                self.schedule.start <= self.start_time <
+                self.end_time <= self.schedule.end):
             raise ValidationError(
-                _('shift start date must be within schedule start end')
+                _('Shift times must fall within the schedule boundaries')
             )
-        if not (self.schedule.start < self.end_time <= self.schedule.end):
-            raise ValidationError(
-                _('shift start date must be lowerr then schedule end')
-            )
-        if self.shift_date != self.schedule.date:
-            raise ValidationError(_('Shift date must match schedule date'))
+
         super().clean()
+
+    def save(self, *args, **kwargs):
+        # self.full_clean()
+        super().save(*args, **kwargs)
