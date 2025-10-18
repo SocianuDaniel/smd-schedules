@@ -1,0 +1,77 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static django_bootstrap5 %}
+    <title>
+        {% block title %}{% endblock %}
+    </title>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:ital,opsz,wght@0,6..96,400..900;1,6..96,400..900&family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Roboto:ital,wght@0,100..900;1,100..900&family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,300;1,400;1,500;1,700&family=Unna:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+<style>
+    .nav-link {
+        font-family: "Open Sans" sans-serif;
+    }
+    .smd-navbar{
+
+        min-height: 100px;
+        background-color: #a6d2ef;
+        border-bottom: 1px solid #6d7678;
+    }
+    .error{
+        color: red;
+        font-size: large;
+
+    }
+</style>
+    {% block style_link %}{% endblock style_link %}
+    {% block extra_style %}{% endblock extra_style %}
+    <script src="https://kit.fontawesome.com/a0cc324604.js" crossorigin="anonymous"></script>
+    
+
+</head>
+<body>
+<nav class="navbar navbar-expand-sm smd-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="{% url 'home:dash' %}">Smdonline</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#collapsibleNavbar">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse justify-content-end" id="collapsibleNavbar">
+      <ul class="navbar-nav mr-auto">
+          {% if user.is_authenticated %}
+              {% include 'dash/menu/owner_menu.html' %}
+
+              {% else %}
+              <li class="nav-item">
+                    <a class="nav-link" href="{% url 'owner:register' %}">Register</a>
+              </li>
+              <li class="nav-item">
+                 <a class="nav-link" href="{% url 'dash:user-login' %}">Login</a>
+              </li>
+          {% endif %}
+
+
+      </ul>
+    </div>
+  </div>
+</nav>
+{% if messages %}
+    {% for message in messages %}
+    <div class="  {% if message.tags %} {{ message.tags }}{% endif %} alert" role="alert">{{ message }}</div>
+    {% endfor %}
+{% endif %}
+{%block content %}
+{% endblock %} 
+
+{% block extra_js %}{% endblock extra_js %}
+</body>
+</html>
+
