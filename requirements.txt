@@ -8,3 +8,4 @@ django-localflavor
 django-countries[pyuca]
 celery[redis]
 gevent
+django-bootstrap5
